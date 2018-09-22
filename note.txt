@@ -1,0 +1,268 @@
+
+--------------PENJUMLAHAN HARI----------------------
+$date = strtotime("+1 day", strtotime("2007-02-28"));
+echo date("Y-m-d", $date);
+
+
+--------------JUMLAH HARI ANTARA 2 TANGGAL----------------------
+$now = time(); // or your date as well
+$your_date = strtotime("2010-01-01");
+$datediff = $now - $your_date;
+echo round($datediff / (60 * 60 * 24));
+
+
+--------------RANDOM DATE ANTARA 2 TANGGAL----------------------
+function randomDate($start_date, $end_date){
+    $min = strtotime($start_date);
+    $max = strtotime($end_date);
+    $val = rand($min, $max);
+    return date('Y-m-d H:i:s', $val);
+}
+
+
+fungsi {
+    $user = $this->random_user();
+        $the_last = $this->mod_post->get_the_last();
+        $load_recent_keyword = $this->mod_cron->get_recent_keyword();
+        $current_keyword_id = $load_recent_keyword[0]->cron_recent_keyword + 1;
+        $hasil_cek = false;
+        $current_keyword_string = null;
+        while($hasil_cek != true){
+            $data_where = array("id" => $current_keyword_id);
+            $result = $this->mod_keyword->get_keyword_by_id($data_where);
+            if(sizeof($result ) > 0){
+                if(sizeof($result) > 0){
+                    $current_keyword_string = $result[0]->keyword;
+                    $current_keyword_string = $this->clear_from_badword($current_keyword_string);
+                    $current_keyword_string = $this->clear_escape_character($current_keyword_string);
+                    if($current_keyword_string != "" || $current_keyword_string != null ){
+                        $hasil_cek = true;
+                    }else{
+                        $hasil_cek = false;
+                        $current_keyword_id++; 
+                    }
+                }else{
+                    $hasil_cek = false;
+                    $current_keyword_id++;
+                }
+            }
+        } 
+        $oxen99_result = $this->execute_oxen99(strtolower($current_keyword_string));
+        
+        $post_author = $user;
+        $post_date = date("Y-m-d H:i:s");
+        $post_date_gmt = date("Y-m-d H:i:s");
+        $post_content = "";
+        $post_title = ucwords($current_keyword_string);
+        $post_status = "publish";
+        $comment_status = "open";
+        $ping_status = "open";
+        $post_name = str_replace(' ','-',strtolower($current_keyword_string)); 
+        $post_modified = date("Y-m-d H:i:s");
+        $post_modified_gmt = date("Y-m-d H:i:s");
+        $post_parent = "0";
+        $menu_order = "0";
+        $post_type = "post";
+        $comment_count = "0";
+
+        $cron_recent_keyword = $current_keyword_id;
+        $cron_datetime = date("Y-m-d H:i:s");
+        $cron_result = "";
+
+        $jml_keyword_baru = 0;
+        $jml_image_hasil_grab = 0;
+        $thumbnail_selected = false;
+
+        if(sizeof($oxen99_result["article"]["google"]) > 0 ){
+            for($x=0;$x<sizeof($oxen99_result["article"]["google"]);$x++){
+                $keyword_baru = $oxen99_result["article"]["google"][$x]["judul"];
+                $keyword_baru = str_replace(".","",$keyword_baru);
+                $this->insert_keyword(
+                    array(
+                        "keyword" => strtolower($keyword_baru)
+                    ));
+                $post_content .= ucfirst($oxen99_result["article"]["google"][$x]["konten"]);
+                $jml_keyword_baru++;
+            }
+
+        }
+
+        if(sizeof($oxen99_result["article"]["ask"]) > 0 ){
+            for($x=0;$x<sizeof($oxen99_result["article"]["ask"]);$x++){
+                $keyword_baru = $oxen99_result["article"]["ask"][$x]["judul"];
+                $keyword_baru = str_replace(".","",$keyword_baru);
+                $this->insert_keyword(
+                    array(
+                        "keyword" => strtolower($keyword_baru)
+                    ));
+                $jml_keyword_baru++;
+            }
+        }
+
+        if(sizeof($oxen99_result["article"]["bing"]) > 0 ){
+            for($x=0;$x<sizeof($oxen99_result["article"]["bing"]);$x++){
+                $keyword_baru = $oxen99_result["article"]["bing"][$x]["judul"];
+                $keyword_baru = str_replace(".","",$keyword_baru);
+                $this->insert_keyword(
+                    array(
+                        "keyword" => strtolower($keyword_baru)
+                    ));
+                $jml_keyword_baru++;
+            }
+        }
+
+        if(sizeof($oxen99_result["article"]["yahoo"]) > 0 ){
+            for($x=0;$x<sizeof($oxen99_result["article"]["yahoo"]);$x++){
+                $keyword_baru = $oxen99_result["article"]["yahoo"][$x]["judul"];
+                $keyword_baru = str_replace(".","",$keyword_baru);
+                $this->insert_keyword(
+                    array(
+                        "keyword" => strtolower($keyword_baru)
+                    ));
+                $jml_keyword_baru++;
+            }
+        }
+
+        if(sizeof($oxen99_result["image"]["google_image"]) > 0 ){
+            for($x=0;$x<sizeof($oxen99_result["image"]["google_image"]);$x++){
+                if (strpos($oxen99_result["image"]["google_image"][$x]["imgsrc"], 'http') !== false) {
+                    $src = $oxen99_result["image"]["google_image"][$x]["imgsrc"];
+                }else{
+                    $src = "http://".$oxen99_result["image"]["google_image"][$x]["imgsrc"];
+                }
+
+                if (strpos($src, 'pixabay') !== false) {
+                    $post_content .= '';
+                }else{
+                    if($jml_image_hasil_grab < 20){
+                        $post_content .= '<img src="'.$src.'">';
+                        $jml_image_hasil_grab++;    
+                        if($thumbnail_selected != true){
+                            $data_thumbnail = array(
+                                array(
+                                    "post_id" => $the_last[0]->ID + 1,
+                                    "meta_key" => "fifu_image_url",
+                                    "meta_value" => $src
+                                ),
+                                array(
+                                    "post_id" => $the_last[0]->ID + 1,
+                                    "meta_key" => "fifu_image_alt",
+                                    "meta_value" => ucwords($current_keyword_string)
+                                )
+                            );
+                            $thumbnail_selected = true;
+                        }
+                    }else{
+                        break;
+                    }
+                } 
+            }
+        }
+
+        if(sizeof($oxen99_result["image"]["bing_image"]) > 0 ){
+            for($x=0;$x<sizeof($oxen99_result["image"]["bing_image"]);$x++){
+                if (strpos($oxen99_result["image"]["bing_image"][$x]["imgsrc"], 'http') !== false) {
+                    $src = $oxen99_result["image"]["bing_image"][$x]["imgsrc"];
+                }else{
+                    $src = "http://".$oxen99_result["image"]["bing_image"][$x]["imgsrc"];
+                }  
+                
+                if (strpos($src, 'pixabay') !== false) {
+                    $post_content .= '';
+                }else{
+                    if($jml_image_hasil_grab < 20){
+                        $post_content .= '<img src="'.$src.'">';
+                        $jml_image_hasil_grab++; 
+                        if($thumbnail_selected != true){
+                            $data_thumbnail = array(
+                                array(
+                                    "post_id" => $the_last[0]->ID + 1,
+                                    "meta_key" => "fifu_image_url",
+                                    "meta_value" => $src
+                                ),
+                                array(
+                                    "post_id" => $the_last[0]->ID + 1,
+                                    "meta_key" => "fifu_image_alt",
+                                    "meta_value" => ucwords($current_keyword_string)
+                                )
+                            );
+                            $thumbnail_selected = true;
+                        }   
+                    }else{
+                        break;
+                    }
+                } 
+            }
+        }
+
+        if(sizeof($oxen99_result["image"]["yahoo_image"]) > 0 ){
+            for($x=0;$x<sizeof($oxen99_result["image"]["yahoo_image"]);$x++){
+                if (strpos($oxen99_result["image"]["yahoo_image"][$x]["imgsrc"], 'http') !== false) {
+                    $src = $oxen99_result["image"]["yahoo_image"][$x]["imgsrc"];
+                }else{
+                    $src = "http://".$oxen99_result["image"]["yahoo_image"][$x]["imgsrc"];
+                }
+
+                if (strpos($src, 'pixabay') !== false) {
+                    $post_content .= '';
+                }else{
+                    if($jml_image_hasil_grab < 20){
+                        $post_content .= '<img src="'.$src.'">';
+                        $jml_image_hasil_grab++;  
+                        if($thumbnail_selected != true){
+                            $data_thumbnail = array(
+                                array(
+                                    "post_id" => $the_last[0]->ID + 1,
+                                    "meta_key" => "fifu_image_url",
+                                    "meta_value" => $src
+                                ),
+                                array(
+                                    "post_id" => $the_last[0]->ID + 1,
+                                    "meta_key" => "fifu_image_alt",
+                                    "meta_value" => ucwords($current_keyword_string)
+                                )
+                            );
+                            $thumbnail_selected = true;
+                        }
+                    }else{
+                        break;
+                    }
+                } 
+            }
+        }
+
+        $cron_result = $jml_keyword_baru . " keyword baru dan " . $jml_image_hasil_grab . " image hasil grabbing.";
+
+
+        $this->insert_post(
+            array(
+                "post_author" => $post_author,
+                "post_date" => $post_date,
+                "post_date_gmt" => $post_date_gmt,
+                "post_content" => $post_content,
+                "post_title" => $post_title,
+                "post_status" => $post_status,
+                "comment_status" => $comment_status,
+                "ping_status" => $ping_status,
+                "post_name" => $post_name, 
+                "post_modified" => $post_modified,
+                "post_modified_gmt" => $post_modified_gmt,
+                "post_parent" => $post_parent,
+                "menu_order" => $menu_order,
+                "post_type" => $post_type,
+                "comment_count" => $comment_count
+            )
+        );
+
+        $this->insert_cron(
+            array(
+                "cron_recent_keyword" => $cron_recent_keyword,
+                "cron_datetime" => $cron_datetime,
+                "cron_result" => $cron_result
+            )
+        );
+
+        if($data_thumbnail == true){
+            $this->insert_thumbnail($data_thumbnail);
+        } 
+}
